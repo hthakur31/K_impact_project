@@ -1,0 +1,29 @@
+# traffic_app/views.py
+
+from django.http import JsonResponse
+from .status import status_data
+from django.shortcuts import render
+
+from django.http import StreamingHttpResponse
+from .video_stream import gen_frames
+
+from django.http import StreamingHttpResponse
+from .video_stream import gen_frames  # Ensure this path is correct
+
+def video_feed(request):
+    return StreamingHttpResponse(
+        gen_frames(),
+        content_type='multipart/x-mixed-replace; boundary=frame'
+    )
+
+
+def video_feed(request):
+    return StreamingHttpResponse(gen_frames(),
+                                 content_type='multipart/x-mixed-replace; boundary=frame')
+
+
+def dashboard(request):
+    return render(request, 'traffic_app/dashboard.html')
+
+def get_status(request):
+    return JsonResponse(status_data)

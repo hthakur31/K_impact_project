@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VISION Traffic Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #15004b;
+            color: #eee;
+            text-align: center;
+            padding: 20px;
+        }
+        .light {
+            width: 100px;
+            height: 100px;
+            margin: 20px auto;
+            border-radius: 50%;
+            background: #555;
+            box-shadow: 0 0 15px #000 inset;
+            transition: background 0.3s ease;
+        }
+        .light.red.active {
+            background: red;
+            box-shadow: 0 0 30px red;
+        }
+        .light.yellow.active {
+            background: yellow;
+            box-shadow: 0 0 30px yellow;
+        }
+        .light.green.active {
+            background: limegreen;
+            box-shadow: 0 0 30px limegreen;
+        }
+        .status {
+            font-size: 2rem;
+            margin-top: 15px;
+        }
+        .emergency {
+            font-size: 1.5rem;
+            color: #ff4444;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        #traffic-light{
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>VISION Traffic Management Dashboard</h1>
+    <h2>Live Camera Feed</h2>
+    <img src="{% url 'video_feed' %}" width="640" height="480" style="border:5px solid #ffffff; border-radius: 8px;" />
+
+    <div id="traffic-light">
+        <div class="light red" id="red-light"></div>
+        <div class="light yellow" id="yellow-light"></div>
+        <div class="light green" id="green-light"></div>
+    </div>
+
+    <div class="status">
+        Vehicles Detected: <span id="vehicle-count">0</span>
+    </div>
+
+    <div class="emergency" id="emergency-alert" style="display:none;">
+        🚨 EMERGENCY VEHICLE DETECTED! 🚨
+    </div>
+
+    <script>
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/status/');
+                const data = await response.json();
+
+                // Update vehicle count
+                document.getElementById('vehicle-count').innerText = data.vehicle_count;
+
+                // Update emergency alert
+                const emergencyAlert = document.getElementById('emergency-alert');
+                if (data.emergency_detected) {
+                    emergencyAlert.style.display = 'block';
+                } else {
+                    emergencyAlert.style.display = 'none';
+                }
+
+                // Update traffic light colors
+                const colors = ['red', 'yellow', 'green'];
+                colors.forEach(color => {
+                    document.getElementById(color + '-light').classList.remove('active');
+                });
+
+                if (colors.includes(data.light_status)) {
+                    document.getElementById(data.light_status + '-light').classList.add('active');
+                }
+
+            } catch (err) {
+                console.error('Error fetching status:', err);
+            }
+        }
+
+        // Fetch every 2 seconds
+        setInterval(fetchStatus, 2000);
+        // Initial fetch
+        fetchStatus();
+    </script>
+
+</body>
+</html>
