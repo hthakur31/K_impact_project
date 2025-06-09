@@ -7,5 +7,6 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     path('status/', views.get_status, name='get_status'),
     path('video_feed/', views.video_feed, name='video_feed'),
+    path('get_status/', views.get_status, name='get_status'),
 
 ]
