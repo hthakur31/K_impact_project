@@ -1,110 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>VISION Traffic Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #15004b;
-            color: #eee;
-            text-align: center;
-            padding: 20px;
-        }
-        .light {
-            width: 100px;
-            height: 100px;
-            margin: 20px auto;
-            border-radius: 50%;
-            background: #555;
-            box-shadow: 0 0 15px #000 inset;
-            transition: background 0.3s ease;
-        }
-        .light.red.active {
-            background: red;
-            box-shadow: 0 0 30px red;
-        }
-        .light.yellow.active {
-            background: yellow;
-            box-shadow: 0 0 30px yellow;
-        }
-        .light.green.active {
-            background: limegreen;
-            box-shadow: 0 0 30px limegreen;
-        }
-        .status {
-            font-size: 2rem;
-            margin-top: 15px;
-        }
-        .emergency {
-            font-size: 1.5rem;
-            color: #ff4444;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-        #traffic-light{
-            justify-content: space-between;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>VISION Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800">
+  <div class="p-4">
+    <h1 class="text-3xl font-bold mb-6 text-center">
+      VISION: Traffic Light Management System
+    </h1>
 
-    <h1>VISION Traffic Management Dashboard</h1>
-    <h2>Live Camera Feed</h2>
-    <img src="{% url 'video_feed' %}" width="640" height="480" style="border:5px solid #ffffff; border-radius: 8px;" />
+    <div class="grid grid-cols-3 gap-4">
+      <!-- Left Panel -->
+      <div class="bg-white shadow-lg rounded-2xl p-4">
+        <h2 class="text-xl font-semibold mb-4 text-center">Vehicle Information</h2>
 
-    <div id="traffic-light">
-        <div class="light red" id="red-light"></div>
-        <div class="light yellow" id="yellow-light"></div>
-        <div class="light green" id="green-light"></div>
+        <!-- Vehicle Count -->
+        <div class="mb-4 border rounded-lg p-3 bg-blue-50">
+          <h3 class="font-semibold">Vehicle Count</h3>
+          <p>Total: <span id="vehicle-count">0</span></p>
+          <p>Route A: <span id="vehicle-a-count">0</span></p>
+          <p>Route B: <span id="vehicle-b-count">0</span></p>
+        </div>
+
+        <!-- Emergency Detection -->
+        <div class="mb-4 border rounded-lg p-3 bg-red-50">
+          <h3 class="font-semibold">Emergency Vehicle</h3>
+          <p>Detected: <span id="emergency-detected">No</span></p>
+          <p>Type: <span id="emergency-type">None</span></p>
+        </div>
+
+        <!-- Detection Accuracy -->
+        <div class="border rounded-lg p-3 bg-green-50">
+          <h3 class="font-semibold mb-2">Detection Accuracy</h3>
+          <ul id="accuracy-list" class="text-sm space-y-1">
+            <!-- JS fills this list -->
+            <li>Loading...</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Center Camera Feed -->
+      <div class="bg-white shadow-lg rounded-2xl p-4 flex items-center justify-center">
+        <div>
+          <h2 class="text-xl font-semibold mb-2 text-center">Live Camera Feed</h2>
+          <img
+            id="camera-feed"
+            src="{% url 'video_feed' %}"
+            class="rounded-lg border border-gray-300"
+            alt="Camera Feed"
+          />
+        </div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="bg-white shadow-lg rounded-2xl p-4 text-center">
+        <h2 class="text-xl font-semibold mb-4">Traffic Light Status</h2>
+
+        <!-- Lights -->
+        <div class="flex justify-center mb-6 space-x-4">
+          <div id="light-red" class="w-12 h-12 rounded-full bg-gray-300 shadow-inner"></div>
+          <div id="light-yellow" class="w-12 h-12 rounded-full bg-gray-300 shadow-inner"></div>
+          <div id="light-green" class="w-12 h-12 rounded-full bg-gray-300 shadow-inner"></div>
+        </div>
+
+        <!-- Timer -->
+        <div class="text-center text-lg font-bold">
+          Timer: <span id="timer-value">--</span> seconds
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="status">
-        Vehicles Detected: <span id="vehicle-count">0</span>
-    </div>
+  <!-- JS Section -->
+  <script>
+    function updateTrafficLight(light) {
+      const lights = {
+        red: document.getElementById("light-red"),
+        yellow: document.getElementById("light-yellow"),
+        green: document.getElementById("light-green")
+      };
 
-    <div class="emergency" id="emergency-alert" style="display:none;">
-        🚨 EMERGENCY VEHICLE DETECTED! 🚨
-    </div>
+      // Reset all
+      Object.values(lights).forEach(el => el.classList.remove("bg-red-500", "bg-yellow-300", "bg-green-500"));
+      lights.red.classList.add("bg-gray-300");
+      lights.yellow.classList.add("bg-gray-300");
+      lights.green.classList.add("bg-gray-300");
 
-    <script>
-        async function fetchStatus() {
-            try {
-                const response = await fetch('/status/');
-                const data = await response.json();
+      // Turn on selected
+      if (light === "red") lights.red.classList.add("bg-red-500");
+      else if (light === "yellow") lights.yellow.classList.add("bg-yellow-300");
+      else if (light === "green") lights.green.classList.add("bg-green-500");
+    }
 
-                // Update vehicle count
-                document.getElementById('vehicle-count').innerText = data.vehicle_count;
+    // Update every second
+    setInterval(() => {
+      fetch('/get_status/')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("vehicle-count").textContent = data.total;
+          document.getElementById("vehicle-a-count").textContent = data.route_a;
+          document.getElementById("vehicle-b-count").textContent = data.route_b;
+          document.getElementById("emergency-detected").textContent = data.emergency ? "Yes" : "No";
+          document.getElementById("emergency-type").textContent = data.emergency_type || "None";
+          document.getElementById("timer-value").textContent = data.timer;
 
-                // Update emergency alert
-                const emergencyAlert = document.getElementById('emergency-alert');
-                if (data.emergency_detected) {
-                    emergencyAlert.style.display = 'block';
-                } else {
-                    emergencyAlert.style.display = 'none';
-                }
+          // Update Traffic Light
+          updateTrafficLight(data.light);
 
-                // Update traffic light colors
-                const colors = ['red', 'yellow', 'green'];
-                colors.forEach(color => {
-                    document.getElementById(color + '-light').classList.remove('active');
-                });
-
-                if (colors.includes(data.light_status)) {
-                    document.getElementById(data.light_status + '-light').classList.add('active');
-                }
-
-            } catch (err) {
-                console.error('Error fetching status:', err);
-            }
-        }
-
-        // Fetch every 2 seconds
-        setInterval(fetchStatus, 2000);
-        // Initial fetch
-        fetchStatus();
-    </script>
-
+          // Accuracy Update
+          const accuracyList = document.getElementById("accuracy-list");
+          accuracyList.innerHTML = ""; // Clear
+          if (data.accuracy && Object.keys(data.accuracy).length > 0) {
+            Object.entries(data.accuracy).forEach(([label, acc]) => {
+              const li = document.createElement("li");
+              li.textContent = `${label}: ${acc.toFixed(2)}%`;
+              accuracyList.appendChild(li);
+            });
+          } else {
+            accuracyList.innerHTML = "<li>No data</li>";
+          }
+        });
+    }, 1000);
+  </script>
 </body>
 </html>
